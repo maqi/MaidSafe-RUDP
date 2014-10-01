@@ -192,10 +192,13 @@ NodeId Transport::ConnectToBootstrapEndpoint(const NodeId& bootstrap_node_id,
             std::atomic<bool> & is_duplicate_normal_connection) {
           saved_on_connection_added(connected_peer_id, transport, temporary_connection,
                                     is_duplicate_normal_connection);
-          assert(!slot_called);
           std::lock_guard<std::mutex> local_lock(local_mutex);
-          slot_called = true;
-          result_out.set_value(std::make_tuple(NodeId(connected_peer_id), false));
+          if (!slot_called) {
+            slot_called = true;
+            result_out.set_value(std::make_tuple(NodeId(connected_peer_id), false));
+          } else {
+            TLOG(kDefaultColour) << "on_conn_added_guard has been called again or after on_conn_lost_guard\n";
+          }
         });
     LocalFunctorReplacement<OnConnectionLost> on_conn_lost_guard(
         callback_mutex_, on_connection_lost_, saved_on_connection_lost,
